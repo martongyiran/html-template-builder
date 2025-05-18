@@ -5,6 +5,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import chokidar from 'chokidar';
 import chalk from 'chalk';
+import fsExtra from 'fs-extra';
 
 dotenv.config();
 const BASE_URL = process.env.BASE_URL || '';
@@ -99,6 +100,17 @@ function buildAll() {
 }
 
 buildAll();
+
+// Copy assets folder
+const srcAssets = path.join('src', 'assets');
+const distAssets = path.join('dist', 'assets');
+
+if (fs.existsSync(srcAssets)) {
+	fsExtra.copySync(srcAssets, distAssets);
+	console.log(chalk.green(`📁 Copied assets to dist/assets`));
+} else {
+	console.warn(chalk.yellow(`⚠️  No src/assets folder to copy.`));
+}
 
 if (isWatch) {
 	console.log(chalk.yellow('👀 Watching for changes...'));
