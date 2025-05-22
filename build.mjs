@@ -21,14 +21,43 @@ function writeFileSafe(filePath, content) {
 	fs.writeFileSync(filePath, content, 'utf8');
 }
 
+function parseTemplateTag(line) {
+	const tagPattern = /^<!-->([A-Z0-9_]+(?:::.*?:::.*?)*?)<-->$/;
+	const match = line.trim().match(tagPattern);
+	if (!match) return null;
+
+	const parts = match[1].split(':::');
+	const templateName = parts[0].toLowerCase();
+	const params = {};
+
+	for (let i = 1; i < parts.length; i += 2) {
+		const key = parts[i];
+		const valMatch = parts[i + 1]?.match(/\(\(\((.*?)\)\)\)/s);
+		if (valMatch) {
+			params[key] = valMatch[1];
+		}
+	}
+
+	return { templateName, params };
+}
+
+function applyParams(content, params) {
+	let result = content;
+	for (const [key, val] of Object.entries(params)) {
+		const paramRegex = new RegExp(`:::${key}:::`, 'g');
+		result = result.replace(paramRegex, val);
+	}
+	return result;
+}
+
 function resolveTemplates(lines, baseDir, visited = new Set()) {
 	const result = [];
 
 	for (let line of lines) {
-		const match = line.match(/<!-->([A-Z0-9_]+)<-->/);
+		const parsed = parseTemplateTag(line);
 
-		if (match) {
-			const templateName = match[1].toLowerCase();
+		if (parsed) {
+			const { templateName, params } = parsed;
 			const templatePath = findTemplatePath(baseDir, templateName);
 
 			if (!templatePath || visited.has(templatePath)) {
@@ -37,7 +66,9 @@ function resolveTemplates(lines, baseDir, visited = new Set()) {
 			}
 
 			visited.add(templatePath);
-			const templateLines = readFileLines(templatePath);
+			let templateContent = fs.readFileSync(templatePath, 'utf8');
+			templateContent = applyParams(templateContent, params);
+			const templateLines = templateContent.split(/\r?\n/);
 			const resolved = resolveTemplates(templateLines, baseDir, visited);
 			result.push(...resolved);
 		} else {
