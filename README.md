@@ -1,4 +1,4 @@
-# HTML Template Builder v1.0.0
+# HTML Template Builder v1.0.1
 
 A simple Node.js-based static site builder that processes custom HTML templates and assembles pages using placeholders like `<!-->TEMPLATENAME<-->`.
 
@@ -137,3 +137,7 @@ dist/
 | `npm run dev`   | Starts live dev server + watcher |
 
 ---
+
+## 📄 Changelog
+
+- v1.0.1: local server now watches .js files under public/assets

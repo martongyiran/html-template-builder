@@ -150,7 +150,12 @@ if (isWatch) {
 		.on('all', (event, filePath) => {
 			console.log(chalk.blue(`🔄 Change detected: ${filePath}`));
 			try {
-				buildAll();
+				if (filePath.includes('assets')) {
+					fsExtra.copySync(srcAssets, distAssets);
+					console.log(chalk.green(`📁 Updated assets.`));
+				} else {
+					buildAll();
+				}
 			} catch (e) {
 				console.error(chalk.red('❌ Build failed:'), e.message);
 			}
