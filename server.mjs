@@ -9,7 +9,7 @@ exec('node build.mjs --dev --watch', (err, stdout, stderr) => {
 
 bs.init({
 	server: 'dist',
-	files: ['dist/**/*.html'],
+	files: ['dist/**/*.html', 'dist/**/*.js'],
 	open: true,
 	notify: false,
 	port: 3000,
