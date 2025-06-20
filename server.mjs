@@ -8,6 +8,7 @@ const builder = spawn('node', ['build.mjs', '--dev', '--watch'], {
 });
 
 let serverStarted = false;
+let reloadTimeout;
 
 builder.stdout.on('data', (data) => {
 	const output = data.toString();
@@ -20,12 +21,19 @@ builder.stdout.on('data', (data) => {
 
 		bs.init({
 			server: 'dist',
-			files: ['dist/**/*.html', 'dist/**/*.js', 'dist/**/*.css'],
 			open: true,
 			notify: false,
 			port: 3000,
-			watch: true,
+			watch: false,
 		});
+	}
+
+	if (serverStarted && output.includes('🧠 BUILD_DONE')) {
+		clearTimeout(reloadTimeout);
+		reloadTimeout = setTimeout(() => {
+			console.log('♻️  Reload triggered by build');
+			bs.reload();
+		}, 300);
 	}
 });
 

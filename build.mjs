@@ -116,22 +116,6 @@ function processHtmlFile(srcPath, distPath) {
 	console.log(chalk.green(`✅ Built: ${distPath}`));
 }
 
-function buildSingleHtmlFile(srcPath) {
-	const relative = path.relative('src', srcPath);
-	if (relative === 'index.html') {
-		processHtmlFile(srcPath, 'dist/index.html');
-	} else if (relative === '404.html') {
-		processHtmlFile(srcPath, 'dist/404.html');
-	} else if (relative === '.htaccess') {
-		processHtmlFile(srcPath, 'dist/.htaccess');
-	} else if (relative.startsWith('pages' + path.sep)) {
-		const name = path.parse(relative).name;
-		processHtmlFile(srcPath, path.join('dist', name, 'index.html'));
-	} else {
-		console.warn(chalk.yellow(`⚠️  Unrecognized HTML path: ${srcPath}`));
-	}
-}
-
 function buildAll() {
 	processHtmlFile('src/index.html', 'dist/index.html');
 
@@ -222,52 +206,42 @@ async function copyAndMinifyAssets(srcDir, distDir) {
 	}
 }
 
-// Copy assets folder
 const srcAssets = path.join('src', 'assets');
 const distAssets = path.join('dist', 'assets');
 
 (async () => {
 	buildAll();
 	await copyAndMinifyAssets(srcAssets, distAssets);
-
 	console.log(chalk.green(`✅ Build finished!`));
+})();
 
-	if (isWatch) {
-		console.log(chalk.yellow('👀 Watching for changes...'));
-		chokidar
-			.watch('src', { ignoreInitial: true })
-			.on('all', async (event, filePath) => {
+if (isWatch) {
+	console.log(chalk.yellow('👀 Watching for changes...'));
+
+	let buildTimeout;
+
+	chokidar
+		.watch('src', {
+			ignoreInitial: true,
+			ignored: ['**/dist/**', '**/node_modules/**'],
+		})
+		.on('all', (event, filePath) => {
+			clearTimeout(buildTimeout);
+			buildTimeout = setTimeout(async () => {
 				console.log(chalk.blue(`🔄 Change detected: ${filePath}`));
+
 				try {
-					const ext = path.extname(filePath).toLowerCase();
-
 					if (filePath.includes('assets')) {
-						const relative = path.relative('src/assets', filePath);
-						const outPath = path.join('dist/assets', relative);
-
-						if (ext === '.css') {
-							const css = fs.readFileSync(filePath, 'utf8');
-							const minCss = minifyCss(css);
-							fsExtra.outputFileSync(outPath, minCss);
-							console.log(chalk.green(`🟢 Minified CSS: ${outPath}`));
-						} else if (ext === '.js') {
-							const js = fs.readFileSync(filePath, 'utf8');
-							const minJs = await minifyJs(js);
-							const obfJs = obfuscateJs(minJs);
-							fsExtra.outputFileSync(outPath, obfJs);
-							console.log(chalk.green(`🔒 Obfuscated JS: ${outPath}`));
-						} else {
-							fsExtra.copyFileSync(filePath, outPath);
-							console.log(chalk.green(`📁 Copied asset: ${outPath}`));
-						}
-					} else if (ext === '.html' || filePath.endsWith('.htaccess')) {
-						buildSingleHtmlFile(filePath);
+						await copyAndMinifyAssets(srcAssets, distAssets);
+						console.log(chalk.green(`📁 Updated assets.`));
 					} else {
-						console.log(chalk.gray(`ℹ️  Ignored: ${filePath}`));
+						buildAll();
+						await copyAndMinifyAssets(srcAssets, distAssets);
 					}
+					console.log('🧠 BUILD_DONE');
 				} catch (e) {
 					console.error(chalk.red('❌ Build failed:'), e.message);
 				}
-			});
-	}
-})();
+			}, 300);
+		});
+}

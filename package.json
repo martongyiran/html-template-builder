@@ -1,6 +1,6 @@
 {
 	"name": "html-template-builder",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "A template processor with env and live dev mode.",
 	"main": "build.mjs",
 	"type": "module",
